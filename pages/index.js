@@ -18,6 +18,8 @@ import {
   Stack,
   Fade,
   Zoom,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material'
 import DownloadIcon from '@mui/icons-material/Download'
 import LightModeIcon from '@mui/icons-material/LightMode'
@@ -39,6 +41,7 @@ export default function Home() {
   const [level, setLevel] = useState('M')
   const [fileName, setFileName] = useState('qr-code')
   const [windowWidth, setWindowWidth] = useState(0)
+  const [transparentBackground, setTransparentBackground] = useState(false)
 
   // Window width'i takip et
   useEffect(() => {
@@ -87,8 +90,18 @@ export default function Home() {
     canvas.width = size
     canvas.height = size
     
+    // Şeffaf arka plan için canvas'ı temizle
+    if (transparentBackground) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+    } else {
+      // Arka plan rengini ayarla
+      ctx.fillStyle = bgColor
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+    }
+    
     img.onload = () => {
       ctx.drawImage(img, 0, 0)
+      // Şeffaf arka plan için PNG formatını kullan (zaten şeffaf destekler)
       const pngFile = canvas.toDataURL('image/png')
       const downloadLink = document.createElement('a')
       const finalFileName = fileName.trim() || 'qr-code'
@@ -599,54 +612,83 @@ export default function Home() {
                     >
                       Arka Plan Rengi
                     </Typography>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <input
-                        type="color"
-                        value={bgColor}
-                        onChange={(e) => setBgColor(e.target.value)}
-                        style={{
-                          width: 48,
-                          height: 48,
-                          borderRadius: 8,
-                          border: '2px solid #e0e0e0',
-                          cursor: 'pointer',
-                          flexShrink: 0,
-                        }}
+                    <Stack spacing={1.5}>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={transparentBackground}
+                            onChange={(e) => setTransparentBackground(e.target.checked)}
+                            sx={{
+                              color: isDark ? 'rgba(255, 255, 255, 0.7)' : 'primary.main',
+                              '&.Mui-checked': {
+                                color: '#667eea',
+                              },
+                            }}
+                          />
+                        }
+                        label={
+                          <Typography
+                            sx={{
+                              fontSize: { xs: '0.8125rem', sm: '0.875rem' },
+                              color: isDark ? 'rgba(255, 255, 255, 0.9)' : 'inherit',
+                            }}
+                          >
+                            Şeffaf Arka Plan
+                          </Typography>
+                        }
                       />
-                      <TextField
-                        value={bgColor}
-                        onChange={(e) => setBgColor(e.target.value)}
-                        placeholder="#FFFFFF"
-                        size="small"
-                        fullWidth
-                        sx={{
-                          '& .MuiInputBase-root': {
-                            fontSize: { xs: '0.875rem', sm: '1rem' },
-                            color: isDark ? '#ffffff' : 'inherit',
-                            bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
-                            ...(isDark && {
-                              '& fieldset': {
-                                borderColor: 'rgba(255, 255, 255, 0.2)',
-                              },
-                              '&:hover fieldset': {
-                                borderColor: 'rgba(255, 255, 255, 0.3)',
-                              },
-                              '&.Mui-focused fieldset': {
-                                borderColor: '#667eea',
-                              },
-                            }),
-                          },
-                          '& .MuiInputBase-input::placeholder': {
-                            ...(isDark && {
-                              color: 'rgba(255, 255, 255, 0.5)',
-                              opacity: 1,
-                            }),
-                            ...(!isDark && {
-                              opacity: 0.6,
-                            }),
-                          },
-                        }}
-                      />
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ opacity: transparentBackground ? 0.5 : 1 }}>
+                        <input
+                          type="color"
+                          value={bgColor}
+                          onChange={(e) => setBgColor(e.target.value)}
+                          disabled={transparentBackground}
+                          style={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: 8,
+                            border: '2px solid #e0e0e0',
+                            cursor: transparentBackground ? 'not-allowed' : 'pointer',
+                            flexShrink: 0,
+                            opacity: transparentBackground ? 0.5 : 1,
+                          }}
+                        />
+                        <TextField
+                          value={bgColor}
+                          onChange={(e) => setBgColor(e.target.value)}
+                          placeholder="#FFFFFF"
+                          size="small"
+                          fullWidth
+                          disabled={transparentBackground}
+                          sx={{
+                            '& .MuiInputBase-root': {
+                              fontSize: { xs: '0.875rem', sm: '1rem' },
+                              color: isDark ? '#ffffff' : 'inherit',
+                              bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+                              ...(isDark && {
+                                '& fieldset': {
+                                  borderColor: 'rgba(255, 255, 255, 0.2)',
+                                },
+                                '&:hover fieldset': {
+                                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                                },
+                                '&.Mui-focused fieldset': {
+                                  borderColor: '#667eea',
+                                },
+                              }),
+                            },
+                            '& .MuiInputBase-input::placeholder': {
+                              ...(isDark && {
+                                color: 'rgba(255, 255, 255, 0.5)',
+                                opacity: 1,
+                              }),
+                              ...(!isDark && {
+                                opacity: 0.6,
+                              }),
+                            },
+                          }}
+                        />
+                      </Stack>
                     </Stack>
                   </Grid>
 
@@ -770,6 +812,13 @@ export default function Home() {
                         display: 'flex',
                         justifyContent: 'center',
                         alignItems: 'center',
+                        background: transparentBackground 
+                          ? isDark
+                            ? 'repeating-conic-gradient(#2a2a3a 0% 25%, #1e1e2e 0% 50%) 50% / 20px 20px'
+                            : 'repeating-conic-gradient(#f0f0f0 0% 25%, #ffffff 0% 50%) 50% / 20px 20px'
+                          : 'transparent',
+                        borderRadius: 2,
+                        p: transparentBackground ? 2 : 0,
                         '& svg': {
                           maxWidth: '100%',
                           height: 'auto',
@@ -780,7 +829,7 @@ export default function Home() {
                         id="qr-code"
                         value={text}
                         size={getResponsiveSize()}
-                        bgColor={bgColor}
+                        bgColor={transparentBackground ? 'transparent' : bgColor}
                         fgColor={fgColor}
                         level={level}
                         includeMargin={true}
