@@ -1,7 +1,7 @@
 import { Html, Head, Main, NextScript } from 'next/document'
 
 export default function Document() {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'qr.yasinkaracam.codes'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://qr.yasinkaracam.codes'
   const siteName = 'QR Kod Oluşturucu'
   const description = 'Basit ve güzel QR kod generator - Metin, URL veya herhangi bir veri için QR kod oluşturun'
   const ogImage = `${siteUrl}/favicon.svg`
