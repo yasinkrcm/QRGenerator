@@ -4,7 +4,7 @@ export default function Document() {
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://qr.yasinkaracam.codes'
   const siteName = 'QR Kod Oluşturucu'
   const description = 'Basit ve güzel QR kod generator - Metin, URL veya herhangi bir veri için QR kod oluşturun'
-  const ogImage = `${siteUrl}/favicon.svg`
+  const ogImage = `${siteUrl}/og-image.png`
 
   return (
     <Html lang="tr">
@@ -24,8 +24,8 @@ export default function Document() {
         <meta property="og:description" content={description} />
         <meta property="og:image" content={ogImage} />
         <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta property="og:image:type" content="image/svg+xml" />
+        <meta property="og:image:height" content="1200" />
+        <meta property="og:image:type" content="image/png" />
         <meta property="og:site_name" content={siteName} />
         <meta property="og:locale" content="tr_TR" />
         
