@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="12" fill="url(#grad)"/>
+  <!-- QR Kod Deseni -->
+  <g fill="#FFFFFF" opacity="0.95">
+    <!-- Sol üst köşe -->
+    <rect x="8" y="8" width="12" height="12" rx="2"/>
+    <rect x="10" y="10" width="8" height="8" fill="url(#grad)"/>
+    <rect x="12" y="12" width="4" height="4" fill="#FFFFFF"/>
+    
+    <!-- Sağ üst köşe -->
+    <rect x="44" y="8" width="12" height="12" rx="2"/>
+    <rect x="46" y="10" width="8" height="8" fill="url(#grad)"/>
+    <rect x="48" y="12" width="4" height="4" fill="#FFFFFF"/>
+    
+    <!-- Sol alt köşe -->
+    <rect x="8" y="44" width="12" height="12" rx="2"/>
+    <rect x="10" y="46" width="8" height="8" fill="url(#grad)"/>
+    <rect x="12" y="48" width="4" height="4" fill="#FFFFFF"/>
+    
+    <!-- Bağlantı çizgileri -->
+    <rect x="24" y="8" width="4" height="4"/>
+    <rect x="32" y="8" width="4" height="4"/>
+    <rect x="8" y="24" width="4" height="4"/>
+    <rect x="8" y="32" width="4" height="4"/>
+    <rect x="52" y="24" width="4" height="4"/>
+    <rect x="52" y="32" width="4" height="4"/>
+    <rect x="24" y="52" width="4" height="4"/>
+    <rect x="32" y="52" width="4" height="4"/>
+    
+    <!-- Orta desen -->
+    <rect x="24" y="24" width="2" height="2"/>
+    <rect x="28" y="24" width="2" height="2"/>
+    <rect x="34" y="24" width="2" height="2"/>
+    <rect x="38" y="24" width="2" height="2"/>
+    <rect x="24" y="28" width="2" height="2"/>
+    <rect x="38" y="28" width="2" height="2"/>
+    <rect x="24" y="34" width="2" height="2"/>
+    <rect x="28" y="34" width="2" height="2"/>
+    <rect x="34" y="34" width="2" height="2"/>
+    <rect x="38" y="34" width="2" height="2"/>
+    <rect x="24" y="38" width="2" height="2"/>
+    <rect x="38" y="38" width="2" height="2"/>
+  </g>
+</svg>
+
