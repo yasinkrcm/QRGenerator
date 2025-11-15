@@ -1,5 +1,6 @@
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
+import { Analytics } from '@vercel/analytics/next'
 
 const theme = createTheme({
   palette: {
@@ -36,6 +37,7 @@ export default function App({ Component, pageProps }) {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Component {...pageProps} />
+      <Analytics />
     </ThemeProvider>
   )
 }
