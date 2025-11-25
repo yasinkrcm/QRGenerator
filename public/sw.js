@@ -1,15 +1,20 @@
-const CACHE_NAME = 'qr-generator-v1';
+const CACHE_NAME = 'qr-generator-v2';
 const urlsToCache = [
   '/',
   '/favicon.svg',
   '/og-image.png',
+  '/_next/static/css/app.css',
 ];
 
-// Install event
+// Install event - daha agresif caching
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(urlsToCache))
+      .then((cache) => {
+        return cache.addAll(urlsToCache).catch((err) => {
+          console.log('Cache addAll error:', err);
+        });
+      })
   );
   self.skipWaiting();
 });
@@ -30,23 +35,60 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch event - Network first, cache fallback
+// Fetch event - Cache first for app shell, network first for API
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Clone the response
-        const responseToCache = response.clone();
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Cache-first strategy for app shell (HTML, CSS, JS, images)
+  if (
+    request.destination === 'document' ||
+    request.destination === 'style' ||
+    request.destination === 'script' ||
+    request.destination === 'image' ||
+    url.pathname.startsWith('/_next/static/')
+  ) {
+    event.respondWith(
+      caches.match(request).then((response) => {
+        if (response) {
+          // Cache'de var, arka planda güncelle
+          fetch(request).then((freshResponse) => {
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, freshResponse);
+            });
+          }).catch(() => {});
+          return response;
+        }
         
-        caches.open(CACHE_NAME)
-          .then((cache) => {
-            cache.put(event.request, responseToCache);
+        // Cache'de yok, network'ten al ve cache'le
+        return fetch(request).then((response) => {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, responseToCache);
           });
-        
-        return response;
+          return response;
+        }).catch(() => {
+          // Offline fallback
+          if (request.destination === 'document') {
+            return caches.match('/');
+          }
+        });
       })
-      .catch(() => {
-        return caches.match(event.request);
-      })
-  );
+    );
+  } else {
+    // Network-first for everything else
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, responseToCache);
+          });
+          return response;
+        })
+        .catch(() => {
+          return caches.match(request);
+        })
+    );
+  }
 });

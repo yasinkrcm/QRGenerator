@@ -3,10 +3,12 @@
   "short_name": "QR Generator",
   "description": "Basit ve güzel QR kod generator - Metin, URL veya herhangi bir veri için QR kod oluşturun",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#667eea",
   "theme_color": "#667eea",
   "orientation": "portrait-primary",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/favicon.svg",

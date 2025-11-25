@@ -72,6 +72,9 @@ export default function Home() {
   const [showHistory, setShowHistory] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' })
+  const [isOnline, setIsOnline] = useState(true)
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false)
+  const [deferredPrompt, setDeferredPrompt] = useState(null)
 
   // Window width'i takip et
   useEffect(() => {
@@ -93,6 +96,42 @@ export default function Home() {
       const savedFavorites = localStorage.getItem('qr-favorites')
       if (savedHistory) setHistory(JSON.parse(savedHistory))
       if (savedFavorites) setFavorites(JSON.parse(savedFavorites))
+    }
+  }, [])
+
+  // Online/Offline durumu ve PWA yükleme
+  useEffect(() => {
+    // Online/offline durumu
+    const handleOnline = () => {
+      setIsOnline(true)
+      setSnackbar({ open: true, message: '🌐 İnternet bağlantısı sağlandı!', severity: 'success' })
+    }
+    const handleOffline = () => {
+      setIsOnline(false)
+      setSnackbar({ open: true, message: '📴 Offline moddasınız - Uygulama çalışmaya devam ediyor!', severity: 'warning' })
+    }
+
+    // PWA yükleme prompt
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault()
+      setDeferredPrompt(e)
+      setShowInstallPrompt(true)
+    }
+
+    // Initial online durumu
+    if (typeof window !== 'undefined') {
+      setIsOnline(navigator.onLine)
+      window.addEventListener('online', handleOnline)
+      window.addEventListener('offline', handleOffline)
+      window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('online', handleOnline)
+        window.removeEventListener('offline', handleOffline)
+        window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+      }
     }
   }, [])
 
@@ -583,6 +622,99 @@ export default function Home() {
           position: 'relative',
         }}
       >
+        {/* Online/Offline Status Badge */}
+        {!isOnline && (
+          <Box
+            sx={{
+              position: 'fixed',
+              top: { xs: 12, sm: 16 },
+              left: { xs: 16, sm: 24 },
+              zIndex: 9999,
+              bgcolor: 'rgba(255, 152, 0, 0.95)',
+              color: 'white',
+              px: 2,
+              py: 0.75,
+              borderRadius: 2,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              backdropFilter: 'blur(10px)',
+              boxShadow: '0 4px 16px rgba(255, 152, 0, 0.4)',
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+              fontWeight: 600,
+            }}
+          >
+            📴 Offline Mod
+          </Box>
+        )}
+
+        {/* PWA Install Prompt */}
+        {showInstallPrompt && deferredPrompt && (
+          <Box
+            sx={{
+              position: 'fixed',
+              bottom: { xs: 80, sm: 100 },
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 9999,
+              bgcolor: isDark ? 'rgba(102, 126, 234, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+              color: isDark ? 'white' : 'text.primary',
+              px: 3,
+              py: 2,
+              borderRadius: 3,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              backdropFilter: 'blur(20px)',
+              boxShadow: isDark
+                ? '0 8px 32px rgba(102, 126, 234, 0.4)'
+                : '0 8px 32px rgba(0, 0, 0, 0.15)',
+              maxWidth: '90vw',
+            }}
+          >
+            <Typography sx={{ fontSize: { xs: '0.875rem', sm: '1rem' }, fontWeight: 500 }}>
+              📱 Uygulamayı telefonunuza yükleyin!
+            </Typography>
+            <Stack direction="row" spacing={1}>
+              <Button
+                size="small"
+                variant="contained"
+                onClick={async () => {
+                  if (deferredPrompt) {
+                    deferredPrompt.prompt()
+                    const { outcome } = await deferredPrompt.userChoice
+                    if (outcome === 'accepted') {
+                      setSnackbar({ open: true, message: '✅ Uygulama yüklendi!', severity: 'success' })
+                    }
+                    setDeferredPrompt(null)
+                    setShowInstallPrompt(false)
+                  }
+                }}
+                sx={{
+                  bgcolor: isDark ? 'white' : '#667eea',
+                  color: isDark ? '#667eea' : 'white',
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  '&:hover': {
+                    bgcolor: isDark ? 'rgba(255, 255, 255, 0.9)' : '#5568d3',
+                  },
+                }}
+              >
+                Yükle
+              </Button>
+              <Button
+                size="small"
+                onClick={() => setShowInstallPrompt(false)}
+                sx={{
+                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                  color: isDark ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                }}
+              >
+                Kapat
+              </Button>
+            </Stack>
+          </Box>
+        )}
+
         {/* Üst Sağ Butonlar */}
         <Stack
           direction="row"
@@ -1699,19 +1831,28 @@ export default function Home() {
                             sm: 1.6, 
                             md: 1.8 
                           },
-                          minHeight: { xs: '44px', sm: '48px' },
+                          minHeight: { xs: '48px', sm: '52px', md: '56px' },
                           fontSize: { 
-                            xs: '0.8125rem', 
+                            xs: '0.875rem', 
                             sm: '0.9375rem', 
                             md: '1rem' 
                           },
                           fontWeight: 600,
                           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                           boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+                          position: 'relative',
+                          zIndex: 1,
+                          touchAction: 'manipulation',
+                          WebkitTapHighlightColor: 'transparent',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                           '& .MuiButton-startIcon': {
-                            marginRight: { xs: 0.5, sm: 1 },
+                            marginRight: { xs: 0.75, sm: 1 },
+                            display: 'flex',
+                            alignItems: 'center',
                             '& > *:nth-of-type(1)': {
-                              fontSize: { xs: '1.125rem', sm: '1.25rem', md: '1.5rem' },
+                              fontSize: { xs: '1.25rem', sm: '1.375rem', md: '1.5rem' },
                             },
                           },
                           '&:hover': {
