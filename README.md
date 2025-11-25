@@ -8,16 +8,44 @@ Next.js ve Material-UI ile oluşturulmuş modern, kullanıcı dostu QR kod gener
 
 ## ✨ Özellikler
 
-- 🎨 **Modern ve Şık Arayüz** - Material Design 3 ile tasarlanmış profesyonel görünüm
-- 🎭 **Animasyonlar** - Smooth geçişler ve hover efektleri
-- 🎨 **Özelleştirilebilir Renkler** - Arka plan ve ön plan renklerini özelleştirin
-- 📏 **Ayarlanabilir Boyut** - 128px ile 512px arasında boyut seçimi
-- 🔧 **Hata Düzeltme Seviyesi** - L, M, Q, H seviyelerinde hata düzeltme
-- 💾 **PNG İndirme** - Yüksek kaliteli PNG formatında indirme
-- 📝 **Özelleştirilebilir Dosya Adı** - İndirilen dosyanın adını özelleştirin
-- 📱 **Tam Responsive** - Mobil, tablet ve masaüstü uyumlu
-- ⚡ **Hızlı Örnekler** - URL, metin, WiFi, telefon ve email için hazır örnekler
-- 🎯 **Canlı Önizleme** - Değişiklikler anında görüntülenir
+### 🎨 Temel Özellikler
+- **Modern ve Şık Arayüz** - Material Design 3 ile tasarlanmış profesyonel görünüm
+- **Koyu/Açık Tema** - Otomatik tema değiştirme
+- **Animasyonlar** - Smooth geçişler ve hover efektleri
+- **Tam Responsive** - Mobil, tablet ve masaüstü uyumlu
+
+### 🖼️ Logo ve Özelleştirme
+- **Logo Ekleme** - QR kodun ortasına logo yükleyebilme
+- **Logo Boyutu** - %15-40 arası ayarlanabilir boyut
+- **Logo Şekli** - Kare veya yuvarlak seçenekleri
+- **Logo Arka Planı** - Özelleştirilebilir arka plan rengi
+- **Özelleştirilebilir Renkler** - Arka plan ve ön plan renklerini değiştirme
+- **Şeffaf Arka Plan** - PNG formatında şeffaf arka plan desteği
+
+### 📥 İndirme ve Paylaşma
+- **Çoklu Format** - PNG, SVG, JPG formatlarında indirme
+- **Paylaş** - Web Share API ile kolay paylaşım
+- **Yazdır** - Doğrudan yazdırma desteği
+- **Panoya Kopyala** - Clipboard API ile kopyalama
+
+### 📚 Şablonlar
+- **Metin/URL** - Standart metin ve URL'ler
+- **WiFi** - WiFi ağ bilgileri için özel format
+- **vCard** - Kartvizit bilgileri
+- **Email** - Email adresi ve mesaj
+- **SMS** - Telefon numarası ve mesaj
+- **Konum** - GPS koordinatları
+
+### 💾 Geçmiş ve Favoriler
+- **Geçmiş** - Son 20 oluşturulan QR kod
+- **Favoriler** - Sık kullanılanları kaydetme
+- **Hızlı Yükleme** - Geçmişten tekrar oluşturma
+- **localStorage** - Tarayıcıda yerel depolama
+
+### 📱 PWA Özellikleri
+- **Offline Çalışma** - Service Worker ile çevrimdışı destek
+- **Ana Ekrana Ekle** - PWA olarak yüklenebilir
+- **Hızlı Başlatma** - Uygulama gibi deneyim
 
 ## 🚀 Kurulum
 

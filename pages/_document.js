@@ -13,9 +13,16 @@ export default function Document() {
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link rel="apple-touch-icon" href="/favicon.svg" />
         
+        {/* PWA Manifest */}
+        <link rel="manifest" href="/manifest.json" />
+        
         {/* Basic Meta Tags */}
         <meta name="description" content={description} />
         <meta name="theme-color" content="#667eea" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="QR Generator" />
         
         {/* Open Graph / Facebook / WhatsApp */}
         <meta property="og:type" content="website" />

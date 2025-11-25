@@ -19,6 +19,14 @@ export default function App({ Component, pageProps }) {
   useEffect(() => {
     const savedMode = localStorage.getItem('themeMode') || 'light'
     setMode(savedMode)
+
+    // Service Worker'ı kaydet
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then((registration) => console.log('Service Worker registered:', registration))
+        .catch((error) => console.log('Service Worker registration failed:', error))
+    }
   }, [])
 
   // Tema değiştirme fonksiyonu

@@ -20,10 +20,25 @@ import {
   Zoom,
   FormControlLabel,
   Checkbox,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Snackbar,
+  Alert,
 } from '@mui/material'
 import DownloadIcon from '@mui/icons-material/Download'
 import LightModeIcon from '@mui/icons-material/LightMode'
 import DarkModeIcon from '@mui/icons-material/DarkMode'
+import ShareIcon from '@mui/icons-material/Share'
+import PrintIcon from '@mui/icons-material/Print'
+import ContentCopyIcon from '@mui/icons-material/ContentCopy'
+import HistoryIcon from '@mui/icons-material/History'
+import FavoriteIcon from '@mui/icons-material/Favorite'
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
+import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner'
+import CloseIcon from '@mui/icons-material/Close'
+import DeleteIcon from '@mui/icons-material/Delete'
 import { useThemeMode } from './_app'
 
 export default function Home() {
@@ -44,6 +59,19 @@ export default function Home() {
   const [transparentBackground, setTransparentBackground] = useState(false)
   const [logoImage, setLogoImage] = useState(null)
   const [logoPreview, setLogoPreview] = useState(null)
+  const [logoSize, setLogoSize] = useState(25)
+  const [logoShape, setLogoShape] = useState('square')
+  const [logoBgColor, setLogoBgColor] = useState('#FFFFFF')
+  const [logoTransparent, setLogoTransparent] = useState(false)
+  const [logoBorderRadius, setLogoBorderRadius] = useState(8)
+  const [qrTemplate, setQrTemplate] = useState('text')
+  const [gradientEnabled, setGradientEnabled] = useState(false)
+  const [gradientColor, setGradientColor] = useState('#764ba2')
+  const [history, setHistory] = useState([])
+  const [favorites, setFavorites] = useState([])
+  const [showHistory, setShowHistory] = useState(false)
+  const [showScanner, setShowScanner] = useState(false)
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' })
 
   // Window width'i takip et
   useEffect(() => {
@@ -57,6 +85,50 @@ export default function Home() {
       return () => window.removeEventListener('resize', handleResize)
     }
   }, [])
+
+  // Geçmiş ve favorileri localStorage'dan yükle
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedHistory = localStorage.getItem('qr-history')
+      const savedFavorites = localStorage.getItem('qr-favorites')
+      if (savedHistory) setHistory(JSON.parse(savedHistory))
+      if (savedFavorites) setFavorites(JSON.parse(savedFavorites))
+    }
+  }, [])
+
+  // Klavye kısayolları
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      // Ctrl/Cmd + S: İndir
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        if (text) downloadQR('png')
+      }
+      // Ctrl/Cmd + Shift + S: SVG olarak indir
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 's') {
+        e.preventDefault()
+        if (text) downloadQR('svg')
+      }
+      // Ctrl/Cmd + P: Yazdır
+      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        e.preventDefault()
+        if (text) printQR()
+      }
+      // Ctrl/Cmd + H: Geçmiş
+      if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
+        e.preventDefault()
+        setShowHistory(!showHistory)
+      }
+      // Esc: Dialog'ları kapat
+      if (e.key === 'Escape') {
+        setShowHistory(false)
+        setShowScanner(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyPress)
+    return () => window.removeEventListener('keydown', handleKeyPress)
+  }, [text, showHistory, showScanner])
 
   // Responsive QR kod boyutu - daha akıllı hesaplama
   const getResponsiveSize = () => {
@@ -82,7 +154,7 @@ export default function Home() {
     return size
   }
 
-  const downloadQR = () => {
+  const downloadQR = (format = 'png') => {
     const svg = document.getElementById('qr-code')
     const svgData = new XMLSerializer().serializeToString(svg)
     const canvas = document.createElement('canvas')
@@ -108,44 +180,252 @@ export default function Home() {
       if (logoImage) {
         const logoImg = new Image()
         logoImg.onload = () => {
-          // Logo boyutunu QR kodun %20-30'u kadar yap
-          const logoSize = size * 0.25
-          const logoX = (size - logoSize) / 2
-          const logoY = (size - logoSize) / 2
+          // Logo boyutunu kullanıcı tercihine göre ayarla
+          const calculatedLogoSize = size * (logoSize / 100)
+          const logoX = (size - calculatedLogoSize) / 2
+          const logoY = (size - calculatedLogoSize) / 2
           
-          // Logo için beyaz arka plan (daha iyi kontrast)
-          const padding = logoSize * 0.1
-          ctx.fillStyle = 'white'
-          ctx.fillRect(logoX - padding, logoY - padding, logoSize + padding * 2, logoSize + padding * 2)
+          // Logo arka plan
+          if (!logoTransparent) {
+            const padding = calculatedLogoSize * 0.1
+            ctx.fillStyle = logoBgColor
+            
+            if (logoShape === 'circle') {
+              ctx.beginPath()
+              ctx.arc(size / 2, size / 2, (calculatedLogoSize + padding * 2) / 2, 0, Math.PI * 2)
+              ctx.fill()
+            } else {
+              ctx.beginPath()
+              const radius = logoBorderRadius
+              ctx.moveTo(logoX - padding + radius, logoY - padding)
+              ctx.lineTo(logoX + calculatedLogoSize + padding - radius, logoY - padding)
+              ctx.arcTo(logoX + calculatedLogoSize + padding, logoY - padding, logoX + calculatedLogoSize + padding, logoY - padding + radius, radius)
+              ctx.lineTo(logoX + calculatedLogoSize + padding, logoY + calculatedLogoSize + padding - radius)
+              ctx.arcTo(logoX + calculatedLogoSize + padding, logoY + calculatedLogoSize + padding, logoX + calculatedLogoSize + padding - radius, logoY + calculatedLogoSize + padding, radius)
+              ctx.lineTo(logoX - padding + radius, logoY + calculatedLogoSize + padding)
+              ctx.arcTo(logoX - padding, logoY + calculatedLogoSize + padding, logoX - padding, logoY + calculatedLogoSize + padding - radius, radius)
+              ctx.lineTo(logoX - padding, logoY - padding + radius)
+              ctx.arcTo(logoX - padding, logoY - padding, logoX - padding + radius, logoY - padding, radius)
+              ctx.closePath()
+              ctx.fill()
+            }
+          }
           
           // Logoyu çiz
-          ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize)
+          ctx.save()
+          if (logoShape === 'circle') {
+            ctx.beginPath()
+            ctx.arc(size / 2, size / 2, calculatedLogoSize / 2, 0, Math.PI * 2)
+            ctx.clip()
+          }
+          ctx.drawImage(logoImg, logoX, logoY, calculatedLogoSize, calculatedLogoSize)
+          ctx.restore()
           
-          // İndir
-          const pngFile = canvas.toDataURL('image/png')
-          const downloadLink = document.createElement('a')
-          const finalFileName = fileName.trim() || 'qr-code'
-          downloadLink.download = `${finalFileName}.png`
-          downloadLink.href = pngFile
-          downloadLink.click()
+          // Formatına göre indir
+          finishDownload(format)
         }
         logoImg.src = logoPreview
       } else {
-        // Logo yoksa direkt indir
+        finishDownload(format)
+      }
+    }
+    
+    const finishDownload = (format) => {
+      const finalFileName = fileName.trim() || 'qr-code'
+      
+      if (format === 'svg') {
+        // SVG olarak indir
+        const blob = new Blob([svgData], { type: 'image/svg+xml' })
+        const url = URL.createObjectURL(blob)
+        const downloadLink = document.createElement('a')
+        downloadLink.download = `${finalFileName}.svg`
+        downloadLink.href = url
+        downloadLink.click()
+        URL.revokeObjectURL(url)
+      } else if (format === 'jpg') {
+        // JPG olarak indir
+        const jpgFile = canvas.toDataURL('image/jpeg', 0.95)
+        const downloadLink = document.createElement('a')
+        downloadLink.download = `${finalFileName}.jpg`
+        downloadLink.href = jpgFile
+        downloadLink.click()
+      } else {
+        // PNG olarak indir (default)
         const pngFile = canvas.toDataURL('image/png')
         const downloadLink = document.createElement('a')
-        const finalFileName = fileName.trim() || 'qr-code'
         downloadLink.download = `${finalFileName}.png`
         downloadLink.href = pngFile
         downloadLink.click()
       }
+      
+      // Geçmişe ekle
+      saveToHistory()
+      
+      // Başarı bildirimi
+      const formatName = format === 'svg' ? 'SVG' : format === 'jpg' ? 'JPG' : 'PNG'
+      setSnackbar({ open: true, message: `📥 ${formatName} dosyası indirildi!`, severity: 'success' })
     }
     
     img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)))
   }
 
+  const saveToHistory = () => {
+    const qrData = {
+      text,
+      size,
+      bgColor,
+      fgColor,
+      level,
+      fileName,
+      transparentBackground,
+      timestamp: new Date().toISOString(),
+      id: Date.now()
+    }
+    
+    const newHistory = [qrData, ...history].slice(0, 20) // Son 20 kayıt
+    setHistory(newHistory)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('qr-history', JSON.stringify(newHistory))
+    }
+  }
+
+  const addToFavorites = () => {
+    const qrData = {
+      text,
+      size,
+      bgColor,
+      fgColor,
+      level,
+      fileName,
+      transparentBackground,
+      timestamp: new Date().toISOString(),
+      id: Date.now()
+    }
+    
+    const newFavorites = [qrData, ...favorites]
+    setFavorites(newFavorites)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('qr-favorites', JSON.stringify(newFavorites))
+    }
+    setSnackbar({ open: true, message: '⭐ Favorilere eklendi!', severity: 'success' })
+  }
+
+  const removeFromFavorites = (id) => {
+    const newFavorites = favorites.filter(f => f.id !== id)
+    setFavorites(newFavorites)
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('qr-favorites', JSON.stringify(newFavorites))
+    }
+    setSnackbar({ open: true, message: '🗑️ Favorilerden kaldırıldı', severity: 'info' })
+  }
+
+  const loadFromHistory = (item) => {
+    setText(item.text)
+    setSize(item.size)
+    setBgColor(item.bgColor)
+    setFgColor(item.fgColor)
+    setLevel(item.level)
+    setFileName(item.fileName)
+    setTransparentBackground(item.transparentBackground)
+    setShowHistory(false)
+    setSnackbar({ open: true, message: '✅ Geçmişten yüklendi!', severity: 'success' })
+  }
+
+  const clearHistory = () => {
+    setHistory([])
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('qr-history')
+    }
+    setSnackbar({ open: true, message: '🧹 Geçmiş temizlendi', severity: 'info' })
+  }
+
+  const shareQR = async () => {
+    const canvas = document.createElement('canvas')
+    
+    renderQRWithLogo(canvas, () => {
+      canvas.toBlob(async (blob) => {
+        const file = new File([blob], `${fileName || 'qr-code'}.png`, { type: 'image/png' })
+        
+        if (navigator.share && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: 'QR Kod',
+              text: text
+            })
+            setSnackbar({ open: true, message: '📤 Paylaşıldı!', severity: 'success' })
+          } catch (err) {
+            if (err.name !== 'AbortError') {
+              console.log('Paylaşım hatası', err)
+              setSnackbar({ open: true, message: '❌ Paylaşım başarısız', severity: 'error' })
+            }
+          }
+        } else {
+          // Fallback: İndir
+          setSnackbar({ open: true, message: 'ℹ️ Paylaşma desteklenmiyor, indiriliyor...', severity: 'info' })
+          downloadQR()
+        }
+      })
+    })
+  }
+
+  const printQR = () => {
+    const canvas = document.createElement('canvas')
+    
+    renderQRWithLogo(canvas, () => {
+      const dataUrl = canvas.toDataURL('image/png')
+      const printWindow = window.open('', '', 'width=800,height=600')
+      
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>${fileName || 'QR Kod'}</title>
+            <style>
+              body { 
+                display: flex; 
+                justify-content: center; 
+                align-items: center; 
+                min-height: 100vh; 
+                margin: 0;
+                background: white;
+              }
+              img { max-width: 100%; height: auto; }
+            </style>
+          </head>
+          <body>
+            <img src="${dataUrl}" alt="QR Code" />
+          </body>
+        </html>
+      `)
+      printWindow.document.close()
+      printWindow.onload = () => {
+        printWindow.print()
+        printWindow.close()
+        setSnackbar({ open: true, message: '🖨️ Yazdırma başlatıldı!', severity: 'info' })
+      }
+    })
+  }
+
+  const copyToClipboard = async () => {
+    const canvas = document.createElement('canvas')
+    
+    renderQRWithLogo(canvas, () => {
+      canvas.toBlob(async (blob) => {
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob })
+          ])
+          setSnackbar({ open: true, message:  '✅ QR kod panoya kopyalandı!', severity: 'success' })
+        } catch (err) {
+          console.error('Kopyalama hatası:', err)
+          setSnackbar({ open: true, message: '❌ Kopyalama başarısız!', severity: 'error' })
+        }
+      })
+    })
+  }
+
   const handleLogoUpload = (e) => {
-    const file = e.target.files[0]
+    const file = e.target?.files?.[0] || e
     if (file && file.type.startsWith('image/')) {
       setLogoImage(file)
       const reader = new FileReader()
@@ -156,9 +436,121 @@ export default function Home() {
     }
   }
 
+  const handleLogoDrop = (e) => {
+    e.preventDefault()
+    const file = e.dataTransfer.files[0]
+    if (file) {
+      handleLogoUpload(file)
+    }
+  }
+
+  const handleLogoDragOver = (e) => {
+    e.preventDefault()
+  }
+
   const removeLogo = () => {
     setLogoImage(null)
     setLogoPreview(null)
+  }
+
+  // Canvas'a QR kod ve logoyu çiz
+  const renderQRWithLogo = (canvas, callback) => {
+    const svg = document.getElementById('qr-code')
+    const svgData = new XMLSerializer().serializeToString(svg)
+    const ctx = canvas.getContext('2d')
+    const img = new Image()
+    
+    canvas.width = size
+    canvas.height = size
+    ctx.fillStyle = transparentBackground ? 'white' : bgColor
+    ctx.fillRect(0, 0, size, size)
+    
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0)
+      
+      // Logo varsa ekle
+      if (logoPreview) {
+        const logoImg = new Image()
+        logoImg.onload = () => {
+          const calculatedLogoSize = size * (logoSize / 100)
+          const logoX = (size - calculatedLogoSize) / 2
+          const logoY = (size - calculatedLogoSize) / 2
+          
+          // Logo arka plan
+          if (!logoTransparent) {
+            const padding = calculatedLogoSize * 0.1
+            ctx.fillStyle = logoBgColor
+            
+            if (logoShape === 'circle') {
+              ctx.beginPath()
+              ctx.arc(size / 2, size / 2, (calculatedLogoSize + padding * 2) / 2, 0, Math.PI * 2)
+              ctx.fill()
+            } else {
+              ctx.beginPath()
+              const radius = logoBorderRadius
+              ctx.moveTo(logoX - padding + radius, logoY - padding)
+              ctx.lineTo(logoX + calculatedLogoSize + padding - radius, logoY - padding)
+              ctx.arcTo(logoX + calculatedLogoSize + padding, logoY - padding, logoX + calculatedLogoSize + padding, logoY - padding + radius, radius)
+              ctx.lineTo(logoX + calculatedLogoSize + padding, logoY + calculatedLogoSize + padding - radius)
+              ctx.arcTo(logoX + calculatedLogoSize + padding, logoY + calculatedLogoSize + padding, logoX + calculatedLogoSize + padding - radius, logoY + calculatedLogoSize + padding, radius)
+              ctx.lineTo(logoX - padding + radius, logoY + calculatedLogoSize + padding)
+              ctx.arcTo(logoX - padding, logoY + calculatedLogoSize + padding, logoX - padding, logoY + calculatedLogoSize + padding - radius, radius)
+              ctx.lineTo(logoX - padding, logoY - padding + radius)
+              ctx.arcTo(logoX - padding, logoY - padding, logoX - padding + radius, logoY - padding, radius)
+              ctx.closePath()
+              ctx.fill()
+            }
+          }
+          
+          // Logoyu çiz
+          ctx.save()
+          if (logoShape === 'circle') {
+            ctx.beginPath()
+            ctx.arc(size / 2, size / 2, calculatedLogoSize / 2, 0, Math.PI * 2)
+            ctx.clip()
+          }
+          ctx.drawImage(logoImg, logoX, logoY, calculatedLogoSize, calculatedLogoSize)
+          ctx.restore()
+          
+          callback()
+        }
+        logoImg.src = logoPreview
+      } else {
+        callback()
+      }
+    }
+    
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)))
+  }
+
+  // Şablon yardımcı fonksiyonları
+  const generateWiFiQR = (ssid, password, security = 'WPA') => {
+    return `WIFI:T:${security};S:${ssid};P:${password};;`
+  }
+
+  const generateVCardQR = (name, phone, email, website) => {
+    return `BEGIN:VCARD\nVERSION:3.0\nFN:${name}\nTEL:${phone}\nEMAIL:${email}\nURL:${website}\nEND:VCARD`
+  }
+
+  const generateEmailQR = (email, subject, body) => {
+    return `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  }
+
+  const generateSMSQR = (phone, message) => {
+    return `sms:${phone}?body=${encodeURIComponent(message)}`
+  }
+
+  const generateLocationQR = (lat, lng) => {
+    return `geo:${lat},${lng}`
+  }
+
+  const templates = {
+    text: { label: 'Metin/URL', icon: '📝' },
+    wifi: { label: 'WiFi', icon: '📶' },
+    vcard: { label: 'Kartvizit', icon: '👤' },
+    email: { label: 'Email', icon: '✉️' },
+    sms: { label: 'SMS', icon: '💬' },
+    location: { label: 'Konum', icon: '📍' }
   }
 
   const examples = [
@@ -191,8 +583,10 @@ export default function Home() {
           position: 'relative',
         }}
       >
-        {/* Tema Değiştirme Butonu */}
-        <Box
+        {/* Üst Sağ Butonlar */}
+        <Stack
+          direction="row"
+          spacing={1}
           sx={{
             position: 'fixed',
             top: { xs: 16, sm: 24 },
@@ -200,6 +594,37 @@ export default function Home() {
             zIndex: 9999,
           }}
         >
+          <Tooltip title="Geçmiş" arrow>
+            <IconButton
+              onClick={() => setShowHistory(!showHistory)}
+              sx={{
+                bgcolor: isDark 
+                  ? 'rgba(102, 126, 234, 0.9)' 
+                  : 'rgba(255, 255, 255, 0.95)',
+                color: isDark ? '#fff' : '#667eea',
+                backdropFilter: 'blur(20px)',
+                boxShadow: isDark
+                  ? '0 8px 32px rgba(102, 126, 234, 0.4)'
+                  : '0 8px 32px rgba(0, 0, 0, 0.15)',
+                border: `2px solid ${isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(102, 126, 234, 0.2)'}`,
+                width: { xs: 48, sm: 52 },
+                height: { xs: 48, sm: 52 },
+                '&:hover': {
+                  bgcolor: isDark 
+                    ? 'rgba(102, 126, 234, 1)' 
+                    : 'rgba(255, 255, 255, 1)',
+                  transform: 'scale(1.1)',
+                  boxShadow: isDark
+                    ? '0 12px 40px rgba(102, 126, 234, 0.6)'
+                    : '0 12px 40px rgba(0, 0, 0, 0.25)',
+                },
+                transition: 'all 0.3s ease',
+              }}
+            >
+              <HistoryIcon sx={{ fontSize: { xs: 24, sm: 28 } }} />
+            </IconButton>
+          </Tooltip>
+
           <Tooltip title={isDark ? 'Açık Tema' : 'Koyu Tema'} arrow>
             <IconButton
               onClick={toggleColorMode}
@@ -230,7 +655,7 @@ export default function Home() {
               {isDark ? <LightModeIcon sx={{ fontSize: { xs: 24, sm: 28 } }} /> : <DarkModeIcon sx={{ fontSize: { xs: 24, sm: 28 } }} />}
             </IconButton>
           </Tooltip>
-        </Box>
+        </Stack>
 
         <Fade in timeout={800}>
           <Paper
@@ -385,6 +810,60 @@ export default function Home() {
                 }}
               >
                 <Stack spacing={{ xs: isLandscape ? 1.5 : 2, sm: 2, md: 2.5, lg: 3 }}>
+                
+                {/* Şablon Seçici */}
+                <Box>
+                  <Typography 
+                    gutterBottom
+                    sx={{ 
+                      fontSize: { xs: '0.875rem', sm: '1rem' },
+                      mb: 1,
+                      color: isDark ? 'rgba(255, 255, 255, 0.9)' : 'inherit',
+                    }}
+                  >
+                    QR Kod Türü
+                  </Typography>
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    {Object.entries(templates).map(([key, value]) => (
+                      <Chip
+                        key={key}
+                        label={`${value.icon} ${value.label}`}
+                        onClick={() => {
+                          setQrTemplate(key)
+                          // Template değiştiğinde örnek veri ekle
+                          if (key === 'wifi') {
+                            setText('WIFI:T:WPA;S:MyNetwork;P:MyPassword;;')
+                          } else if (key === 'vcard') {
+                            setText('BEGIN:VCARD\nVERSION:3.0\nFN:Adınız Soyadınız\nTEL:+90 555 555 55 55 \nEMAIL:mail@yasinkaracam.codes\nURL:https://yasinkaracam.codes\nEND:VCARD')
+                          } else if (key === 'email') {
+                            setText('mailto:mail@yasinkaracam.codes?subject=Konu&body=Mesaj')
+                          } else if (key === 'sms') {
+                            setText('sms:+90 555 555 55 55?body=Mesaj')
+                          } else if (key === 'location') {
+                            setText('geo:39.9208,44.0408')
+                          } else {
+                            setText('')
+                          }
+                        }}
+                        variant={qrTemplate === key ? 'filled' : 'outlined'}
+                        color={qrTemplate === key ? 'primary' : 'default'}
+                        sx={{
+                          fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                          height: { xs: 32, sm: 36 },
+                          mb: { xs: 0.5, sm: 0 },
+                          ...(isDark && qrTemplate !== key && {
+                            borderColor: 'rgba(255, 255, 255, 0.2)',
+                            color: 'rgba(255, 255, 255, 0.8)',
+                          }),
+                          '&:hover': {
+                            transform: 'scale(1.05)',
+                          },
+                        }}
+                      />
+                    ))}
+                  </Stack>
+                </Box>
+
                 <TextField
                   label="Metin veya URL"
                   multiline
@@ -661,30 +1140,6 @@ export default function Home() {
                       Arka Plan Rengi
                     </Typography>
                     <Stack spacing={1.5}>
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={transparentBackground}
-                            onChange={(e) => setTransparentBackground(e.target.checked)}
-                            sx={{
-                              color: isDark ? 'rgba(255, 255, 255, 0.7)' : 'primary.main',
-                              '&.Mui-checked': {
-                                color: '#667eea',
-                              },
-                            }}
-                          />
-                        }
-                        label={
-                          <Typography
-                            sx={{
-                              fontSize: { xs: '0.8125rem', sm: '0.875rem' },
-                              color: isDark ? 'rgba(255, 255, 255, 0.9)' : 'inherit',
-                            }}
-                          >
-                            Şeffaf Arka Plan
-                          </Typography>
-                        }
-                      />
                       <Stack direction="row" spacing={1} alignItems="center" sx={{ opacity: transparentBackground ? 0.5 : 1 }}>
                         <input
                           type="color"
@@ -737,6 +1192,30 @@ export default function Home() {
                           }}
                         />
                       </Stack>
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={transparentBackground}
+                            onChange={(e) => setTransparentBackground(e.target.checked)}
+                            sx={{
+                              color: isDark ? 'rgba(255, 255, 255, 0.7)' : 'primary.main',
+                              '&.Mui-checked': {
+                                color: '#667eea',
+                              },
+                            }}
+                          />
+                        }
+                        label={
+                          <Typography
+                            sx={{
+                              fontSize: { xs: '0.8125rem', sm: '0.875rem' },
+                              color: isDark ? 'rgba(255, 255, 255, 0.9)' : 'inherit',
+                            }}
+                          >
+                            Şeffaf Arka Plan
+                          </Typography>
+                        }
+                      />
                     </Stack>
                   </Grid>
 
@@ -802,6 +1281,8 @@ export default function Home() {
                   </Grid>
                 </Grid>
 
+                {/* Logo (Opsiyonel) */}
+
                 {/* Logo Yükleme Bölümü */}
                 <Box>
                   <Typography 
@@ -815,32 +1296,53 @@ export default function Home() {
                     Logo (Opsiyonel)
                   </Typography>
                   {!logoPreview ? (
-                    <Button
-                      variant="outlined"
+                    <Box
+                      onDrop={handleLogoDrop}
+                      onDragOver={handleLogoDragOver}
                       component="label"
-                      fullWidth
                       sx={{
-                        py: 2,
+                        py: 3,
+                        px: 2,
                         borderStyle: 'dashed',
                         borderWidth: 2,
+                        borderRadius: 2,
                         fontSize: { xs: '0.875rem', sm: '1rem' },
                         color: isDark ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
                         borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'divider',
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 1,
                         '&:hover': {
                           borderColor: '#667eea',
                           bgcolor: isDark ? 'rgba(102, 126, 234, 0.1)' : 'rgba(102, 126, 234, 0.05)',
-                          borderWidth: 2,
+                          transform: 'scale(1.02)',
                         },
                       }}
                     >
-                      📷 Logo Yükle (QR Ortasında Görünecek)
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        📷 Logo Yükle
+                      </Typography>
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          color: isDark ? 'rgba(255, 255, 255, 0.5)' : 'text.secondary',
+                          fontSize: { xs: '0.75rem', sm: '0.85rem' },
+                        }}
+                      >
+                        Tıklayın veya dosyayı sürükleyip bırakın
+                      </Typography>
                       <input
                         type="file"
                         hidden
                         accept="image/*"
                         onChange={handleLogoUpload}
                       />
-                    </Button>
+                    </Box>
                   ) : (
                     <Box
                       sx={{
@@ -897,6 +1399,142 @@ export default function Home() {
                       >
                         Kaldır
                       </Button>
+                    </Box>
+                  )}
+                  
+                  {/* Logo Özelleştirme Seçenekleri */}
+                  {logoPreview && (
+                    <Box sx={{ mt: 2, }}>
+                      <Typography 
+                        gutterBottom
+                        sx={{ 
+                          fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                          mb: 1,
+                          color: isDark ? 'rgba(255, 255, 255, 0.8)' : 'text.secondary',
+                        }}
+                      >
+                        Logo Boyutu: {logoSize}%
+                      </Typography>
+                      <Slider
+                        value={logoSize}
+                        onChange={(e, newValue) => setLogoSize(newValue)}
+                        min={15}
+                        max={40}
+                        step={1}
+                        sx={{
+                          mb: 2,
+                          '& .MuiSlider-thumb': {
+                            ...(isDark && {
+                              backgroundColor: '#667eea',
+                              border: '2px solid rgba(255, 255, 255, 0.2)',
+                            }),
+                          },
+                          '& .MuiSlider-rail': {
+                            ...(isDark && {
+                              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                            }),
+                          },
+                          '& .MuiSlider-track': {
+                            ...(isDark && {
+                              backgroundColor: '#667eea',
+                            }),
+                          },
+                        }}
+                      />
+                      
+                      <Grid container spacing={2}>
+                        <Grid item xs={6}>
+                          <FormControl fullWidth size="small">
+                            <InputLabel sx={{ 
+                              fontSize: { xs: '0.875rem', sm: '1rem' },
+                              ...(isDark && {
+                                color: 'rgba(255, 255, 255, 0.7)',
+                                '&.Mui-focused': { color: '#667eea' },
+                              }),
+                            }}>
+                              Şekil
+                            </InputLabel>
+                            <Select
+                              value={logoShape}
+                              label="Şekil"
+                              onChange={(e) => setLogoShape(e.target.value)}
+                              sx={{
+                                fontSize: { xs: '0.875rem', sm: '1rem' },
+                                color: isDark ? '#ffffff' : 'inherit',
+                                bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+                                ...(isDark && {
+                                  '& .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                                  },
+                                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                                  },
+                                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: '#667eea',
+                                  },
+                                  '& .MuiSvgIcon-root': {
+                                    color: 'rgba(255, 255, 255, 0.7)',
+                                  },
+                                }),
+                              }}
+                            >
+                              <MenuItem value="square">⬛ Kare</MenuItem>
+                              <MenuItem value="circle">⭕ Yuvarlak</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <input
+                              type="color"
+                              value={logoBgColor}
+                              onChange={(e) => setLogoBgColor(e.target.value)}
+                              disabled={logoTransparent}
+                              style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: 4,
+                                border: '2px solid #e0e0e0',
+                                cursor: logoTransparent ? 'not-allowed' : 'pointer',
+                                flexShrink: 0,
+                                opacity: logoTransparent ? 0.5 : 1,
+                              }}
+                            />
+                            <Box sx={{ flex: 1 }}>
+                              <Typography variant="caption" sx={{ 
+                                color: isDark ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                                fontSize: '0.7rem'
+                              }}>
+                                Arka Plan
+                              </Typography>
+                            </Box>
+                          </Stack>
+                        </Grid>
+                        <Grid item xs={12}>
+                          <FormControlLabel
+                            control={
+                              <Checkbox
+                                checked={logoTransparent}
+                                onChange={(e) => setLogoTransparent(e.target.checked)}
+                                sx={{
+                                  color: isDark ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.6)',
+                                  '&.Mui-checked': {
+                                    color: '#667eea',
+                                  },
+                                }}
+                              />
+                            }
+                            label={
+                              <Typography variant="body2" sx={{ 
+                                color: isDark ? 'rgba(255, 255, 255, 0.9)' : 'text.primary',
+                                fontSize: '0.875rem'
+                              }}>
+                                Şeffaf Arka Plan
+                              </Typography>
+                            }
+                          />
+                        </Grid>
+                      </Grid>
                     </Box>
                   )}
                 </Box>
@@ -984,20 +1622,38 @@ export default function Home() {
                       />
                       {logoPreview && (
                         <Box
-                          component="img"
-                          src={logoPreview}
-                          alt="Logo overlay"
                           sx={{
                             position: 'absolute',
-                            width: `${getResponsiveSize() * 0.25}px`,
-                            height: `${getResponsiveSize() * 0.25}px`,
-                            objectFit: 'contain',
-                            bgcolor: 'white',
-                            borderRadius: 1,
-                            p: 0.5,
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                           }}
-                        />
+                        >
+                          {!logoTransparent && (
+                            <Box
+                              sx={{
+                                position: 'absolute',
+                                width: `${getResponsiveSize() * (logoSize / 100) + (getResponsiveSize() * (logoSize / 100) * 0.2)}px`,
+                                height: `${getResponsiveSize() * (logoSize / 100) + (getResponsiveSize() * (logoSize / 100) * 0.2)}px`,
+                                bgcolor: logoBgColor,
+                                borderRadius: logoShape === 'circle' ? '50%' : `${logoBorderRadius}px`,
+                              }}
+                            />
+                          )}
+                          <Box
+                            component="img"
+                            src={logoPreview}
+                            alt="Logo overlay"
+                            sx={{
+                              position: 'relative',
+                              width: `${getResponsiveSize() * (logoSize / 100)}px`,
+                              height: `${getResponsiveSize() * (logoSize / 100)}px`,
+                              objectFit: 'cover',
+                              borderRadius: logoShape === 'circle' ? '50%' : 0,
+                              clipPath: logoShape === 'circle' ? 'circle(50%)' : 'none',
+                            }}
+                          />
+                        </Box>
                       )}
                     </Box>
                   ) : (
@@ -1030,47 +1686,167 @@ export default function Home() {
 
                 {text && (
                   <Zoom in timeout={500}>
-                    <Button
-                      variant="contained"
-                      size="large"
-                      startIcon={<DownloadIcon />}
-                      onClick={downloadQR}
-                      fullWidth
-                      sx={{
-                        py: { 
-                          xs: isLandscape ? 1.25 : 1.5, 
-                          sm: 1.6, 
-                          md: 1.8 
-                        },
-                        minHeight: { xs: '44px', sm: '48px' }, // Touch-friendly
-                        fontSize: { 
-                          xs: '0.8125rem', 
-                          sm: '0.9375rem', 
-                          md: '1rem' 
-                        },
-                        fontWeight: 600,
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
-                        maxWidth: { xs: '100%', sm: '450px', md: '500px' },
-                        '& .MuiButton-startIcon': {
-                          marginRight: { xs: 0.5, sm: 1 },
-                          '& > *:nth-of-type(1)': {
-                            fontSize: { xs: '1.125rem', sm: '1.25rem', md: '1.5rem' },
+                    <Stack spacing={1.5} sx={{ width: '100%', maxWidth: { xs: '100%', sm: '450px', md: '500px' } }}>
+                      <Button
+                        variant="contained"
+                        size="large"
+                        startIcon={<DownloadIcon />}
+                        onClick={() => downloadQR('png')}
+                        fullWidth
+                        sx={{
+                          py: { 
+                            xs: isLandscape ? 1.25 : 1.5, 
+                            sm: 1.6, 
+                            md: 1.8 
                           },
-                        },
-                        '&:hover': {
-                          background: 'linear-gradient(135deg, #5568d3 0%, #653a8f 100%)',
-                          boxShadow: '0 6px 20px rgba(102, 126, 234, 0.6)',
-                          transform: 'translateY(-2px)',
-                        },
-                        '&:active': {
-                          transform: 'translateY(0px)',
-                        },
-                        transition: 'all 0.3s ease',
-                      }}
-                    >
-                      QR Kodu İndir (PNG)
-                    </Button>
+                          minHeight: { xs: '44px', sm: '48px' },
+                          fontSize: { 
+                            xs: '0.8125rem', 
+                            sm: '0.9375rem', 
+                            md: '1rem' 
+                          },
+                          fontWeight: 600,
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+                          '& .MuiButton-startIcon': {
+                            marginRight: { xs: 0.5, sm: 1 },
+                            '& > *:nth-of-type(1)': {
+                              fontSize: { xs: '1.125rem', sm: '1.25rem', md: '1.5rem' },
+                            },
+                          },
+                          '&:hover': {
+                            background: 'linear-gradient(135deg, #5568d3 0%, #653a8f 100%)',
+                            boxShadow: '0 6px 20px rgba(102, 126, 234, 0.6)',
+                            transform: 'translateY(-2px)',
+                          },
+                          '&:active': {
+                            transform: 'translateY(0px)',
+                          },
+                          transition: 'all 0.3s ease',
+                        }}
+                      >
+                        PNG İndir
+                      </Button>
+                      
+                      <Grid container spacing={1}>
+                        <Grid item xs={4}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => downloadQR('svg')}
+                            fullWidth
+                            sx={{
+                              fontSize: { xs: '0.7rem', sm: '0.8rem' },
+                              borderColor: isDark ? 'rgba(255, 255, 255, 0.3)' : 'primary.main',
+                              color: isDark ? 'rgba(255, 255, 255, 0.9)' : 'primary.main',
+                              '&:hover': {
+                                borderColor: '#667eea',
+                                bgcolor: isDark ? 'rgba(102, 126, 234, 0.1)' : 'rgba(102, 126, 234, 0.05)',
+                              },
+                            }}
+                          >
+                            SVG
+                          </Button>
+                        </Grid>
+                        <Grid item xs={4}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => downloadQR('jpg')}
+                            fullWidth
+                            sx={{
+                              fontSize: { xs: '0.7rem', sm: '0.8rem' },
+                              borderColor: isDark ? 'rgba(255, 255, 255, 0.3)' : 'primary.main',
+                              color: isDark ? 'rgba(255, 255, 255, 0.9)' : 'primary.main',
+                              '&:hover': {
+                                borderColor: '#667eea',
+                                bgcolor: isDark ? 'rgba(102, 126, 234, 0.1)' : 'rgba(102, 126, 234, 0.05)',
+                              },
+                            }}
+                          >
+                            JPG
+                          </Button>
+                        </Grid>
+                        <Grid item xs={4}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<FavoriteIcon sx={{ fontSize: '1rem !important' }} />}
+                            onClick={addToFavorites}
+                            fullWidth
+                            sx={{
+                              fontSize: { xs: '0.65rem', sm: '0.75rem' },
+                              borderColor: isDark ? 'rgba(255, 255, 255, 0.3)' : 'primary.main',
+                              color: isDark ? 'rgba(255, 255, 255, 0.9)' : 'primary.main',
+                              '&:hover': {
+                                borderColor: '#e91e63',
+                                bgcolor: 'rgba(233, 30, 99, 0.1)',
+                                color: '#e91e63',
+                              },
+                            }}
+                          >
+                            Kaydet
+                          </Button>
+                        </Grid>
+                      </Grid>
+
+                      <Grid container spacing={1}>
+                        <Grid item xs={4}>
+                          <IconButton
+                            onClick={shareQR}
+                            sx={{
+                              width: '100%',
+                              borderRadius: 1,
+                              border: '1px solid',
+                              borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'divider',
+                              color: isDark ? 'rgba(255, 255, 255, 0.9)' : 'text.primary',
+                              '&:hover': {
+                                bgcolor: isDark ? 'rgba(102, 126, 234, 0.1)' : 'rgba(102, 126, 234, 0.05)',
+                                borderColor: '#667eea',
+                              },
+                            }}
+                          >
+                            <ShareIcon />
+                          </IconButton>
+                        </Grid>
+                        <Grid item xs={4}>
+                          <IconButton
+                            onClick={printQR}
+                            sx={{
+                              width: '100%',
+                              borderRadius: 1,
+                              border: '1px solid',
+                              borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'divider',
+                              color: isDark ? 'rgba(255, 255, 255, 0.9)' : 'text.primary',
+                              '&:hover': {
+                                bgcolor: isDark ? 'rgba(102, 126, 234, 0.1)' : 'rgba(102, 126, 234, 0.05)',
+                                borderColor: '#667eea',
+                              },
+                            }}
+                          >
+                            <PrintIcon />
+                          </IconButton>
+                        </Grid>
+                        <Grid item xs={4}>
+                          <IconButton
+                            onClick={copyToClipboard}
+                            sx={{
+                              width: '100%',
+                              borderRadius: 1,
+                              border: '1px solid',
+                              borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'divider',
+                              color: isDark ? 'rgba(255, 255, 255, 0.9)' : 'text.primary',
+                              '&:hover': {
+                                bgcolor: isDark ? 'rgba(102, 126, 234, 0.1)' : 'rgba(102, 126, 234, 0.05)',
+                                borderColor: '#667eea',
+                              },
+                            }}
+                          >
+                            <ContentCopyIcon />
+                          </IconButton>
+                        </Grid>
+                      </Grid>
+                    </Stack>
                   </Zoom>
                 )}
               </Box>
@@ -1155,6 +1931,138 @@ export default function Home() {
           )}
           </Paper>
         </Fade>
+
+        {/* Geçmiş Dialog */}
+        {showHistory && (
+          <Paper
+            elevation={24}
+            sx={{
+              position: 'fixed',
+              top: { xs: 80, sm: 90 },
+              right: { xs: 16, sm: 24 },
+              width: { xs: 'calc(100% - 32px)', sm: 400 },
+              maxHeight: { xs: '70vh', sm: '80vh' },
+              overflow: 'auto',
+              zIndex: 10000,
+              p: 2,
+              background: isDark
+                ? 'linear-gradient(to bottom, #1e1e2e 0%, #252538 100%)'
+                : 'linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%)',
+              border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
+            }}
+          >
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+              <Typography variant="h6" sx={{ color: isDark ? '#fff' : 'inherit' }}>
+                Geçmiş & Favoriler
+              </Typography>
+              <IconButton size="small" onClick={() => setShowHistory(false)}>
+                <CloseIcon />
+              </IconButton>
+            </Box>
+
+            {favorites.length > 0 && (
+              <Box mb={3}>
+                <Typography variant="subtitle2" sx={{ color: isDark ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary', mb: 1 }}>
+                  ⭐ Favoriler
+                </Typography>
+                <Stack spacing={1}>
+                  {favorites.map((item) => (
+                    <Paper
+                      key={item.id}
+                      sx={{
+                        p: 1.5,
+                        cursor: 'pointer',
+                        bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'grey.100',
+                        '&:hover': { bgcolor: isDark ? 'rgba(102, 126, 234, 0.1)' : 'rgba(102, 126, 234, 0.05)' },
+                      }}
+                      onClick={() => loadFromHistory(item)}
+                    >
+                      <Box display="flex" justifyContent="space-between" alignItems="center">
+                        <Box flex={1}>
+                          <Typography variant="body2" noWrap sx={{ color: isDark ? '#fff' : 'inherit' }}>
+                            {item.text.substring(0, 30)}{item.text.length > 30 ? '...' : ''}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: isDark ? 'rgba(255, 255, 255, 0.6)' : 'text.secondary' }}>
+                            {new Date(item.timestamp).toLocaleString('tr-TR')}
+                          </Typography>
+                        </Box>
+                        <IconButton size="small" onClick={(e) => { e.stopPropagation(); removeFromFavorites(item.id); }}>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    </Paper>
+                  ))}
+                </Stack>
+              </Box>
+            )}
+
+            {history.length > 0 && (
+              <Box>
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                  <Typography variant="subtitle2" sx={{ color: isDark ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary' }}>
+                    🕒 Son Oluşturulanlar
+                  </Typography>
+                  <Button size="small" onClick={clearHistory} color="error">
+                    Temizle
+                  </Button>
+                </Box>
+                <Stack spacing={1}>
+                  {history.map((item) => (
+                    <Paper
+                      key={item.id}
+                      sx={{
+                        p: 1.5,
+                        cursor: 'pointer',
+                        bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'grey.100',
+                        '&:hover': { bgcolor: isDark ? 'rgba(102, 126, 234, 0.1)' : 'rgba(102, 126, 234, 0.05)' },
+                      }}
+                      onClick={() => loadFromHistory(item)}
+                    >
+                      <Typography variant="body2" noWrap sx={{ color: isDark ? '#fff' : 'inherit' }}>
+                        {item.text.substring(0, 30)}{item.text.length > 30 ? '...' : ''}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: isDark ? 'rgba(255, 255, 255, 0.6)' : 'text.secondary' }}>
+                        {new Date(item.timestamp).toLocaleString('tr-TR')}
+                      </Typography>
+                    </Paper>
+                  ))}
+                </Stack>
+              </Box>
+            )}
+
+            {history.length === 0 && favorites.length === 0 && (
+              <Typography variant="body2" textAlign="center" sx={{ color: isDark ? 'rgba(255, 255, 255, 0.6)' : 'text.secondary', py: 4 }}>
+                Henüz geçmiş yok
+              </Typography>
+            )}
+          </Paper>
+        )}
+
+        {/* Snackbar Bildirimleri */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={3000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            variant="filled"
+            sx={{
+              width: '100%',
+              fontSize: { xs: '0.875rem', sm: '1rem' },
+              fontWeight: 500,
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+              color: isDark ? '#ffffff' : '#000000',
+              '& .MuiAlert-icon': {
+                fontSize: { xs: '1.25rem', sm: '1.5rem' },
+              },
+            }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Container>
     </Box>
   )
