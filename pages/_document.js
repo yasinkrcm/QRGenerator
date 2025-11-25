@@ -36,7 +36,6 @@ export default function Document() {
         <meta name="twitter:image" content={ogImage} />
         
         {/* Additional Meta Tags */}
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="author" content="QR Generator" />
       </Head>
       <body>

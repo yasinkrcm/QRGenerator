@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, createContext, useContext } from 'react'
+import Head from 'next/head'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { Analytics } from '@vercel/analytics/next'
@@ -103,6 +104,9 @@ export default function App({ Component, pageProps }) {
 
   return (
     <ThemeModeContext.Provider value={{ toggleColorMode, mode }}>
+      <Head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </Head>
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <Component {...pageProps} />

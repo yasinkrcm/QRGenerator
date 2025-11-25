@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Basit ve güzel QR kod generator",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start",
     "generate-og-image": "node scripts/generate-og-image.js"

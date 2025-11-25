@@ -42,6 +42,8 @@ export default function Home() {
   const [fileName, setFileName] = useState('qr-code')
   const [windowWidth, setWindowWidth] = useState(0)
   const [transparentBackground, setTransparentBackground] = useState(false)
+  const [logoImage, setLogoImage] = useState(null)
+  const [logoPreview, setLogoPreview] = useState(null)
 
   // Window width'i takip et
   useEffect(() => {
@@ -101,16 +103,62 @@ export default function Home() {
     
     img.onload = () => {
       ctx.drawImage(img, 0, 0)
-      // Şeffaf arka plan için PNG formatını kullan (zaten şeffaf destekler)
-      const pngFile = canvas.toDataURL('image/png')
-      const downloadLink = document.createElement('a')
-      const finalFileName = fileName.trim() || 'qr-code'
-      downloadLink.download = `${finalFileName}.png`
-      downloadLink.href = pngFile
-      downloadLink.click()
+      
+      // Eğer logo varsa, QR kodun ortasına ekle
+      if (logoImage) {
+        const logoImg = new Image()
+        logoImg.onload = () => {
+          // Logo boyutunu QR kodun %20-30'u kadar yap
+          const logoSize = size * 0.25
+          const logoX = (size - logoSize) / 2
+          const logoY = (size - logoSize) / 2
+          
+          // Logo için beyaz arka plan (daha iyi kontrast)
+          const padding = logoSize * 0.1
+          ctx.fillStyle = 'white'
+          ctx.fillRect(logoX - padding, logoY - padding, logoSize + padding * 2, logoSize + padding * 2)
+          
+          // Logoyu çiz
+          ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize)
+          
+          // İndir
+          const pngFile = canvas.toDataURL('image/png')
+          const downloadLink = document.createElement('a')
+          const finalFileName = fileName.trim() || 'qr-code'
+          downloadLink.download = `${finalFileName}.png`
+          downloadLink.href = pngFile
+          downloadLink.click()
+        }
+        logoImg.src = logoPreview
+      } else {
+        // Logo yoksa direkt indir
+        const pngFile = canvas.toDataURL('image/png')
+        const downloadLink = document.createElement('a')
+        const finalFileName = fileName.trim() || 'qr-code'
+        downloadLink.download = `${finalFileName}.png`
+        downloadLink.href = pngFile
+        downloadLink.click()
+      }
     }
     
     img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)))
+  }
+
+  const handleLogoUpload = (e) => {
+    const file = e.target.files[0]
+    if (file && file.type.startsWith('image/')) {
+      setLogoImage(file)
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        setLogoPreview(event.target.result)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const removeLogo = () => {
+    setLogoImage(null)
+    setLogoPreview(null)
   }
 
   const examples = [
@@ -340,7 +388,8 @@ export default function Home() {
                 <TextField
                   label="Metin veya URL"
                   multiline
-                  rows={{ xs: isLandscape ? 2 : 3, sm: 3, md: 4 }}
+                  minRows={isLandscape ? 2 : 3}
+                  maxRows={6}
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   placeholder="QR kod için metin veya URL girin..."
@@ -456,7 +505,6 @@ export default function Home() {
                         max={512}
                         step={8}
                         marks={!isMobile}
-                        markLabelDisplay={isMobile ? 'none' : 'on'}
                         sx={{
                           '& .MuiSlider-markLabel': {
                             fontSize: { xs: '0.65rem', sm: '0.7rem', md: '0.75rem' },
@@ -753,6 +801,105 @@ export default function Home() {
                     </Stack>
                   </Grid>
                 </Grid>
+
+                {/* Logo Yükleme Bölümü */}
+                <Box>
+                  <Typography 
+                    gutterBottom
+                    sx={{ 
+                      fontSize: { xs: '0.875rem', sm: '1rem' },
+                      mb: 1.5,
+                      color: isDark ? 'rgba(255, 255, 255, 0.9)' : 'inherit',
+                    }}
+                  >
+                    Logo (Opsiyonel)
+                  </Typography>
+                  {!logoPreview ? (
+                    <Button
+                      variant="outlined"
+                      component="label"
+                      fullWidth
+                      sx={{
+                        py: 2,
+                        borderStyle: 'dashed',
+                        borderWidth: 2,
+                        fontSize: { xs: '0.875rem', sm: '1rem' },
+                        color: isDark ? 'rgba(255, 255, 255, 0.7)' : 'text.secondary',
+                        borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'divider',
+                        '&:hover': {
+                          borderColor: '#667eea',
+                          bgcolor: isDark ? 'rgba(102, 126, 234, 0.1)' : 'rgba(102, 126, 234, 0.05)',
+                          borderWidth: 2,
+                        },
+                      }}
+                    >
+                      📷 Logo Yükle (QR Ortasında Görünecek)
+                      <input
+                        type="file"
+                        hidden
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                      />
+                    </Button>
+                  ) : (
+                    <Box
+                      sx={{
+                        border: '2px solid',
+                        borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : 'divider',
+                        borderRadius: 2,
+                        p: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 2,
+                        bgcolor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'grey.100',
+                      }}
+                    >
+                      <Box
+                        component="img"
+                        src={logoPreview}
+                        alt="Logo preview"
+                        sx={{
+                          width: 60,
+                          height: 60,
+                          objectFit: 'contain',
+                          borderRadius: 1,
+                          bgcolor: 'white',
+                          p: 0.5,
+                        }}
+                      />
+                      <Box sx={{ flex: 1 }}>
+                        <Typography
+                          sx={{
+                            fontSize: { xs: '0.875rem', sm: '1rem' },
+                            color: isDark ? 'rgba(255, 255, 255, 0.9)' : 'inherit',
+                            mb: 0.5,
+                          }}
+                        >
+                          {logoImage?.name || 'Logo yüklendi'}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: isDark ? 'rgba(255, 255, 255, 0.6)' : 'text.secondary',
+                          }}
+                        >
+                          QR kodun ortasında görünecek
+                        </Typography>
+                      </Box>
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        size="small"
+                        onClick={removeLogo}
+                        sx={{
+                          fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                        }}
+                      >
+                        Kaldır
+                      </Button>
+                    </Box>
+                  )}
+                </Box>
                 </Stack>
               </Paper>
             </Grid>
@@ -819,6 +966,7 @@ export default function Home() {
                           : 'transparent',
                         borderRadius: 2,
                         p: transparentBackground ? 2 : 0,
+                        position: 'relative',
                         '& svg': {
                           maxWidth: '100%',
                           height: 'auto',
@@ -834,6 +982,23 @@ export default function Home() {
                         level={level}
                         includeMargin={true}
                       />
+                      {logoPreview && (
+                        <Box
+                          component="img"
+                          src={logoPreview}
+                          alt="Logo overlay"
+                          sx={{
+                            position: 'absolute',
+                            width: `${getResponsiveSize() * 0.25}px`,
+                            height: `${getResponsiveSize() * 0.25}px`,
+                            objectFit: 'contain',
+                            bgcolor: 'white',
+                            borderRadius: 1,
+                            p: 0.5,
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                          }}
+                        />
+                      )}
                     </Box>
                   ) : (
                     <Box
